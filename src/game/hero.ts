@@ -49,6 +49,21 @@ export interface MotionOverride {
   onEnd?: () => void
 }
 
+/**
+ * Grip fits, tuned by screenshot iteration against the animated poses:
+ * with rot (-90°x, 180°y) the blade leaves the top of the fist and rests
+ * forward-down in idle — see docs/media if retuning.
+ */
+export const SWORD_FIT = {
+  pos: [0, 0, 0] as [number, number, number],
+  rot: [-Math.PI / 2, Math.PI, 0] as [number, number, number],
+}
+/** left-hand mirror for dual wield: the mirrored bone needs the opposite x quarter-turn */
+export const SWORD_FIT_L = {
+  pos: [0, 0, 0] as [number, number, number],
+  rot: [Math.PI / 2, Math.PI, 0] as [number, number, number],
+}
+
 /** Attach class loadout gear to a knight model (also used for NPC props). */
 export function attachGear(
   root: THREE.Object3D,
@@ -60,6 +75,9 @@ export function attachGear(
     if (!bone) return
     const sword = instantiate('sword', 1.1)
     sword.root.scale.multiplyScalar(inv)
+    const fit = boneTokens.includes('l') ? SWORD_FIT_L : SWORD_FIT
+    sword.root.position.set(...fit.pos)
+    sword.root.rotation.set(...fit.rot)
     if (loadout.bladeEmissive !== undefined) {
       sword.root.traverse((o) => {
         const mesh = o as THREE.Mesh
