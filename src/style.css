@@ -1,0 +1,252 @@
+:root {
+  --purple: #a855f7;
+  --purple-dim: #6b21a8;
+  --blood: #dc2626;
+  --gold: #f59e0b;
+  --bone: #d6d3d1;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #0a0710;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--bone);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app,
+#app canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#top-bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 28px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px #000, 0 2px 4px #000;
+}
+
+#rift-label {
+  color: var(--purple);
+}
+
+#bottom-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+}
+
+#health-globe {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid #3f3f46;
+  background: #1c0a0a;
+  overflow: hidden;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.8), inset 0 0 14px #000;
+}
+
+#health-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: radial-gradient(circle at 50% 20%, #ef4444, #7f1d1d 70%);
+  transition: height 0.15s ease-out;
+}
+
+#health-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px #000;
+}
+
+#xp-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#level-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: #1c1408;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--gold);
+  font-size: 16px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+#xp-bar {
+  width: min(42vw, 420px);
+  height: 10px;
+  border: 1px solid #52525b;
+  border-radius: 5px;
+  background: #18181b;
+  overflow: hidden;
+}
+
+#xp-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--purple-dim), var(--purple));
+  transition: width 0.2s ease-out;
+}
+
+#banner {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(22px, 4vw, 40px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--purple);
+  text-shadow: 0 0 24px var(--purple-dim), 0 2px 6px #000;
+  opacity: 0;
+  transition: opacity 0.4s;
+  white-space: nowrap;
+}
+
+#banner.show {
+  opacity: 1;
+}
+
+.dmg {
+  position: absolute;
+  font-size: 17px;
+  font-weight: bold;
+  color: #fca5a5;
+  text-shadow: 0 1px 3px #000;
+  animation: dmg-float 0.8s ease-out forwards;
+  transform: translate(-50%, -50%);
+}
+
+.dmg.hero {
+  color: #f87171;
+  font-size: 19px;
+}
+
+.dmg.xp {
+  color: var(--purple);
+}
+
+@keyframes dmg-float {
+  to {
+    opacity: 0;
+    margin-top: -46px;
+  }
+}
+
+#death-overlay,
+#intro-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(5, 2, 8, 0.82);
+  text-align: center;
+}
+
+#death-overlay.show {
+  display: flex;
+}
+
+#death-overlay h1 {
+  color: var(--blood);
+  letter-spacing: 0.25em;
+  font-size: clamp(28px, 6vw, 56px);
+  text-shadow: 0 0 30px #7f1d1d;
+}
+
+#intro-overlay.show {
+  display: flex;
+}
+
+#intro-overlay h1 {
+  color: var(--purple);
+  letter-spacing: 0.3em;
+  font-size: clamp(32px, 7vw, 64px);
+  text-shadow: 0 0 40px var(--purple-dim);
+}
+
+#intro-overlay .tagline {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--bone);
+}
+
+#intro-overlay .controls {
+  font-size: 14px;
+  color: #a1a1aa;
+  letter-spacing: 0.06em;
+}
+
+#intro-overlay .cta {
+  margin-top: 18px;
+  font-size: 15px;
+  color: var(--gold);
+  animation: pulse 1.6s infinite;
+}
+
+#intro-overlay .foot {
+  position: absolute;
+  bottom: 20px;
+  font-size: 13px;
+  color: #71717a;
+}
+
+#intro-overlay a {
+  color: var(--purple);
+  pointer-events: auto;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

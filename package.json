@@ -1,0 +1,26 @@
+{
+  "name": "warptracker",
+  "version": "0.1.0",
+  "description": "Warptracker — a fully open source, community-driven action RPG. You are the Tracker: hunt down and seal the warps, streams of evil pouring into the world.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ilrein/warptracker"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "deploy": "bun run build && wrangler deploy"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.0",
+    "typescript": "^5.9.2",
+    "vite": "^8.1.4",
+    "wrangler": "^4.110.0"
+  }
+}
