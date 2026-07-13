@@ -142,12 +142,7 @@ export class Hud {
   }
 
   /** Floating combat text, projected from a world position to the screen. */
-  spawnFloatingText(
-    worldPos: THREE.Vector3,
-    camera: THREE.Camera,
-    text: string,
-    cls: '' | 'hero' | 'xp' | 'warded' | 'loot' = ''
-  ): void {
+  spawnFloatingText(worldPos: THREE.Vector3, camera: THREE.Camera, text: string, cls = ''): void {
     const projected = worldPos.clone().project(camera)
     if (projected.z > 1) return
     const el = document.createElement('div')

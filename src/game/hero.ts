@@ -99,6 +99,8 @@ export class Hero {
   state: HeroState = 'idle'
   /** set by Game each tick from the zone system */
   inTown = false
+  /** equipped gear bonuses (loot system) */
+  gear = { dmg: 0, hp: 0, speed: 0, mana: 0, regen: 0 }
 
   private anim: Animator
   private yaw = 0
@@ -161,7 +163,17 @@ export class Hero {
   }
 
   get damage(): number {
-    return Math.round((14 + this.level * 3) * this.classDef.dmgMult)
+    return Math.round((14 + this.level * 3) * this.classDef.dmgMult) + this.gear.dmg
+  }
+
+  /** loot system hands in new equip totals; deltas keep current hp/mana sensible */
+  applyGear(totals: { dmg: number; hp: number; speed: number; mana: number; regen: number }): void {
+    this.maxHp += totals.hp - this.gear.hp
+    this.hp = Math.min(this.maxHp, this.hp + Math.max(0, totals.hp - this.gear.hp))
+    this.maxMana += totals.mana - this.gear.mana
+    this.mana = Math.min(this.maxMana, this.mana)
+    this.runSpeed = this.classDef.moveSpeed * (1 + totals.speed / 100)
+    this.gear = { ...totals }
   }
 
   get xpToLevel(): number {
@@ -355,6 +367,7 @@ export class Hero {
     if (this.state === 'dead') return
 
     this.mana = Math.min(this.maxMana, this.mana + this.classDef.manaRegen * dt)
+    if (this.gear.regen > 0) this.hp = Math.min(this.maxHp, this.hp + this.gear.regen * dt)
     if (this.sinceDamaged > 4) {
       this.hp = Math.min(this.maxHp, this.hp + dt * (this.inTown ? 12.5 : 2.5))
     }

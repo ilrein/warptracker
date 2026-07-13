@@ -1,76 +1,60 @@
 # Warptracker
 
-**A fully open source, community-driven action RPG in the browser.**
+**A fully open source, community-driven action RPG in the browser — a love letter to Diablo II.**
 
-Streams of evil — *warps* — are tearing into the world. You are the **Tracker**: an agent sworn to hunt them down and seal them, one rift at a time.
+Streams of evil — *warps* — are tearing into the world. You are the **Tracker**: swear to an Order, take your first hunt at the Emberwatch fire, and follow the old road into the Blackfen Moor. Kill the keepers, break the wards, shatter the Warpspires. Something beneath the Hollow Barrow is holding the doors open.
 
-**Play it now: [warptracker.com](https://warptracker.com)** — no install, no account, no ads. Just click.
+**Play it now: [warptracker.com](https://warptracker.com)** — no install, no account, no ads. Loads in seconds.
 
-![MIT License](https://img.shields.io/badge/license-MIT-a855f7) ![Three.js](https://img.shields.io/badge/three.js-r185-white) ![Vite](https://img.shields.io/badge/vite-8-646cff)
+![MIT License](https://img.shields.io/badge/license-MIT-a855f7) ![Three.js](https://img.shields.io/badge/three.js-r185-white) ![Vite](https://img.shields.io/badge/vite-8-646cff) ![assets](https://img.shields.io/badge/assets-CC0%20%2B%20procedural-f59e0b)
 
-## What is this?
-
-A Diablo-style isometric ARPG built with [Three.js](https://threejs.org), TypeScript, and Vite — inspired by community-built games like *World of Claudecraft* proving that open, community-driven game development works.
-
-Three founding principles:
-
-1. **Fully open source.** MIT licensed, forever. The whole game — engine code, game design, balance numbers — lives in this repo.
-2. **Fully free assets.** Every asset is either generated procedurally in code or licensed CC0/public domain. Nothing in this repo can ever be encumbered. (Characters are CC0 [Quaternius](https://quaternius.com) models; the world, VFX, and sound are procedural.)
-3. **Community driven.** The roadmap is issues and discussions. If you want a feature, propose it or build it.
+![Choose your Order](docs/media/class-select.png)
 
 ## The game
 
-Action combat — not click-and-wait:
+Real action combat — not click-and-wait:
 
-- **WASD** to move, **mouse** to aim.
-- **Click** to attack; chain clicks (or hold) for a 3-hit combo with a heavy finisher.
-- **SPACE** to dodge roll — full invincibility frames, short cooldown.
-- Enemies **telegraph** their attacks (red flash, ground rings). Everything is dodgeable.
-- **Warps** pour out warpspawn — skeletons, bats, dashing ghosts — and every warp's final spawn is an elite demon guardian. Kill everything a warp births and it collapses.
-- **Seal every warp** to clear the rift. Each rift is harder. Level up, get stronger, go deeper.
+- **WASD** to move, **mouse** to aim, **click** for 3-hit sword combos with a heavy finisher, **SPACE** to dodge roll with i-frames. Enemies telegraph everything; everything is dodgeable.
+- **Three Orders** (classes), each with three skills on 1/2/3 and a mana globe: the **Sentinel** (leap slam, whirling steel, war cry), the **Stormcaller** (warp bolts, novas, *teleport*), the **Shade** (fans of blades, traps, phase dashes).
+- **Emberwatch**, a palisaded safe town: quest-giving warden, a lorekeeper by the fire who'd like you to sit awhile, a healer, a smith.
+- **The Blackfen Moor** and its escalating depths, dotted with **Warpspires** — warded obsidian totems guarded by warpspawn packs. Kill the pack, break the ward, smash the spire.
+- **The Hollow Barrow**: a torchlit dungeon crawl ending at the Warpheart and **Gorthul, Warden of the First Warp**.
+- Quests, XP, levels, saves, repeatable end-game Hunts.
+
+![Emberwatch](docs/media/emberwatch.png)
+![The vault](docs/media/vault.png)
+
+## Founding principles
+
+1. **Fully open source.** MIT licensed, forever — engine, game design, balance numbers, everything in this repo.
+2. **Fully free assets.** Everything is procedural code or CC0 ([Quaternius](https://quaternius.com) characters; world, VFX, and all audio are generated). Policy: [ASSETS.md](ASSETS.md).
+3. **Community driven.** The roadmap is issues and discussions. Want a feature? Propose it or build it.
 
 ## Development
 
 ```sh
 bun install       # or npm/pnpm install
 bun run dev       # local dev server
-bun run build     # typecheck + production build to dist/
+bun run build     # typecheck + production build
 ```
 
-Deployment is a Cloudflare Worker serving static assets (`bun run deploy`).
-
-## Project layout
-
-```
-src/
-  main.ts          entry point
-  game/
-    game.ts        game loop, rift progression, orchestration
-    world.ts       battlefield, lighting, procedural decoration
-    hero.ts        the Tracker: movement, combat, leveling
-    enemy.ts       warpspawn AI
-    warp.ts        warp portals: spawning and sealing
-    input.ts       click-to-move / targeting raycasts
-    hud.ts         DOM HUD, floating combat text
-    audio.ts       procedural WebAudio sound effects
-    rng.ts         seeded RNG for stable world decor
-```
+Deployment is a Cloudflare Worker serving static assets (`bun run deploy`). Design docs for the current act live in [docs/DESIGN-v0.3.md](docs/DESIGN-v0.3.md).
 
 ## Contributing
 
-All contributions welcome — code, game design, balance tuning, art (CC0 only), sound, docs. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Good first ideas: new enemy types, hero abilities, loot drops, boss warps, gamepad support, mobile controls, better VFX.
+All contributions welcome — code, game design, balance tuning, art (CC0 only), sound, docs. See [CONTRIBUTING.md](CONTRIBUTING.md). Debug handles for tinkering: `window.__WT` (game instance) and `window.__WTdebug`.
 
 ## Roadmap (community-shaped)
 
-- [ ] Loot & itemization (weapons, armor, affixes)
-- [ ] Hero abilities & skill choices per level
-- [ ] Boss warps with mechanics
-- [ ] Persistent progression (local save)
-- [ ] Co-op multiplayer
-- [ ] Soundtrack (CC0 / originally composed & donated)
+- [x] Action combat, dodge rolls, telegraphs
+- [x] Town, quests, NPCs, dungeon, boss
+- [x] Classes, skills, mana
+- [x] Loot with rarities (in progress this week)
+- [ ] Act II — the stream runs deeper
+- [ ] More classes, skill trees, respec
+- [ ] Co-op multiplayer (regional realm servers — community-hostable)
+- [ ] Controller + mobile support
 
 ## License
 
-[MIT](LICENSE) — do anything you want with it. Assets policy: see [ASSETS.md](ASSETS.md).
+[MIT](LICENSE). Assets policy: [ASSETS.md](ASSETS.md).

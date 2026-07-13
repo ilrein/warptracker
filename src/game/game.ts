@@ -1,6 +1,9 @@
 import * as THREE from 'three'
 import { buildWorld, updateWorld, PORTALS, DUNGEON_ORIGIN } from './world'
-import { zoneAt, ZoneDirector } from './zones'
+import { zoneAt, dangerTier, ZoneDirector } from './zones'
+import { LootSystem } from './loot'
+import { RunStats, ShareCard } from './share'
+import { Ambience } from './ambience'
 import { NEST_SITES, ROAMER_PACKS, GRAVE_WARDENS, ELITE_PATROL, type RoamerPack } from './moor'
 import { SPIRE_SITES, ACT2_DOOR_POI } from './dungeon'
 import { WarpSpire } from './totem'
@@ -41,6 +44,11 @@ export class Game {
   private npcs: NpcSystem
   private skills: SkillSystem
   private zoneDirector: ZoneDirector
+  private loot!: LootSystem
+  private stats = new RunStats()
+  private share!: ShareCard
+  private ambience!: Ambience
+  private zoneName = 'Emberwatch'
 
   private kills = 0
   private viewSize = 9
@@ -93,6 +101,10 @@ export class Game {
       grantXp: (xp) => this.grantXp(xp),
       fullHeal: () => this.fullHeal(),
       startHunt: (n) => this.startHunt(n),
+      onHuntComplete: (n) => {
+        this.stats.note('hunt')
+        this.share.show('triumph', `Hunt ${n} Complete`)
+      },
     })
 
     const classDef = CLASS_DEFS[classId]
@@ -142,6 +154,23 @@ export class Game {
     if (this.questLog.chapter >= 3) this.skills.unlock(2)
     classDef.skills.forEach((s, i) => this.hud.setSkillMeta(i, s.icon, `${s.name} — ${s.describe}`))
 
+    this.loot = new LootSystem({
+      scene: this.scene,
+      floatText: (pos, text, cls) => this.hud.spawnFloatingText(pos, this.camera, text, cls ?? ''),
+      onEquip: (totals, announcement) => {
+        this.hero.applyGear(totals)
+        this.hud.showBanner(announcement, 2600)
+      },
+    })
+    this.hero.applyGear(this.loot.totals) // persisted gear from previous sessions
+
+    this.share = new ShareCard({
+      stats: this.stats,
+      getContext: () => ({ className: classDef.name, level: this.hero.level, zone: this.zoneName }),
+    })
+
+    this.ambience = new Ambience(this.scene)
+
     this.npcs = new NpcSystem({
       scene: this.scene,
       questLog: this.questLog,
@@ -151,6 +180,7 @@ export class Game {
 
     this.zoneDirector = new ZoneDirector(this.scene, {
       onZoneChange: (_zone, displayName) => {
+        this.zoneName = displayName
         this.hud.setZone(displayName)
         if (!this.firstZone) this.hud.showBanner(displayName, 1800)
         this.firstZone = false
@@ -163,7 +193,10 @@ export class Game {
     this.hud.setSpires(this.aliveSpireCount())
 
     this.input = new InputManager(this.renderer.domElement)
-    this.input.onFirstInteraction = () => audio.unlock()
+    this.input.onFirstInteraction = () => {
+      audio.unlock()
+      this.ambience.start()
+    }
     this.input.onZoom = (delta) => {
       this.viewSize = THREE.MathUtils.clamp(this.viewSize + delta * 1.2, 6, 16)
       this.updateCameraFrustum()
@@ -188,7 +221,7 @@ export class Game {
 
   private spawnEnemy(kind: EnemyKindId, pos: THREE.Vector3, tier: number, opts: EnemyOptions = {}): Enemy {
     const enemy = new Enemy(this.scene, pos, tier, kind, opts)
-    enemy.onHitHero = (amount) => this.onHeroHit(amount)
+    enemy.onHitHero = (amount) => this.onHeroHit(amount, enemy)
     enemy.onAggro = (e) => {
       if (e.name) {
         this.boss = e
@@ -226,6 +259,9 @@ export class Game {
       onSealed: () => {
         this.questLog.notify(isHeart ? 'heart' : 'totem')
         this.hud.setSpires(this.aliveSpireCount())
+        this.stats.note(isHeart ? 'heart' : 'spire')
+        this.loot.maybeDrop(position, tier, isHeart ? 'heart' : 'spire')
+        if (isHeart) window.setTimeout(() => this.share.show('triumph', 'Sealed the First Warp'), 2400)
       },
       onAoE: (pos, radius, damage, knockback) => this.aoeEnemies(pos, radius, damage, knockback),
       floatText: (pos, text, cls) =>
@@ -325,6 +361,12 @@ export class Game {
     this.kills++
     audio.kill()
     this.hud.setKills(this.kills)
+    this.stats.note('kill')
+    this.loot.maybeDrop(
+      enemy.position,
+      dangerTier(enemy.position),
+      enemy.name || enemy.elite ? 'elite' : 'enemy'
+    )
     const xp = enemy.xpValue()
     this.hud.spawnFloatingText(enemy.position.clone().setY(1.2), this.camera, `+${xp} xp`, 'xp')
     this.grantXp(xp)
@@ -342,6 +384,7 @@ export class Game {
       if (this.hero.level === 3) this.hud.showBanner('Level 3 — a new skill awakens. Press 2.', 2600)
       else if (this.hero.level === 5) this.hud.showBanner('Level 5 — a new skill awakens. Press 3.', 2600)
       else this.hud.showBanner(`Level ${this.hero.level}`, 1800)
+      this.stats.note('levelup', this.hero.level)
     }
     this.questLog.heroState.level = this.hero.level
     this.questLog.heroState.xp = this.hero.xp
@@ -380,7 +423,7 @@ export class Game {
     }
   }
 
-  private onHeroHit(amount: number): void {
+  private onHeroHit(amount: number, attacker?: Enemy): void {
     const before = this.hero.hp
     this.hero.takeDamage(amount)
     if (this.hero.hp === before) return // i-frames or dead already
@@ -391,6 +434,11 @@ export class Game {
       audio.death()
       this.hud.setDead(true)
       this.respawnT = 3
+      this.stats.note('death')
+      const killedBy =
+        attacker?.name ??
+        (attacker ? `a warpspawn ${attacker.kindId}` : 'the Warpspawn')
+      window.setTimeout(() => this.share.show('death', killedBy), 1200)
     }
   }
 
@@ -502,6 +550,7 @@ export class Game {
       const targets = this.hittables()
       this.hero.inTown = zoneAt(this.hero.position) === 'town'
       this.hero.update(dt, targets, move, aim, this.input.attackHeld)
+      this.loot.update(dt, this.hero.position)
       for (const enemy of this.enemies) enemy.update(dt, this.hero, this.enemies)
       this.enemies = this.enemies.filter((e) => !e.removed)
       for (const spire of this.spires) spire.update(dt, this.hero.position)
@@ -509,6 +558,7 @@ export class Game {
       this.skills.update(dt)
       updateWorld(dt, this.hero.position)
       this.zoneDirector.update(dt, this.hero.position)
+      this.ambience.update(dt, this.hero.position, zoneAt(this.hero.position))
       updateVfx(dt)
       this.updatePortals()
       this.updateRoamers(dt)

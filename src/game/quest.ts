@@ -11,6 +11,8 @@ export interface QuestLogDeps {
   fullHeal: () => void
   /** respawns the overworld spires + the Warpheart for Hunt n */
   startHunt: (n: number) => void
+  /** fired when Hunt n's final seal lands (share cards / stats) */
+  onHuntComplete?: (n: number) => void
 }
 
 /** Shape of the `wt.save` localStorage slot. */
@@ -457,6 +459,7 @@ export class QuestLog {
     this._chapter = 3
     this.accepted = false
     this.deps.showBanner(`Hunt ${this._hunts} complete`)
+    this.deps.onHuntComplete?.(this._hunts)
     this.save()
     this.renderTracker()
   }
