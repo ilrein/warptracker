@@ -4,7 +4,7 @@ import { Animator } from './animator'
 import type { Hero } from './hero'
 import { WORLD_RADIUS } from './world'
 
-const MODEL_YAW = Math.PI
+const MODEL_YAW = 0
 
 export type EnemyKindId = 'skeleton' | 'bat' | 'ghost' | 'demon'
 

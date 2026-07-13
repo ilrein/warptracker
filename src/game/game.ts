@@ -24,7 +24,7 @@ export class Game {
 
   private rift = 1
   private kills = 0
-  private viewSize = 12
+  private viewSize = 9
   private riftTransition = -1
   private respawnT = -1
   private started = false
@@ -44,7 +44,7 @@ export class Game {
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.35
+    this.renderer.toneMappingExposure = 1.7
     container.appendChild(this.renderer.domElement)
 
     this.camera = new THREE.OrthographicCamera(0, 0, 0, 0, 0.1, 200)
@@ -66,7 +66,7 @@ export class Game {
       }
     }
     this.input.onZoom = (delta) => {
-      this.viewSize = THREE.MathUtils.clamp(this.viewSize + delta * 1.4, 8, 20)
+      this.viewSize = THREE.MathUtils.clamp(this.viewSize + delta * 1.2, 6, 16)
       this.updateCameraFrustum()
     }
 
@@ -237,7 +237,7 @@ export class Game {
 
       this.hud.setHealth(this.hero.hp, this.hero.maxHp)
       this.hud.setXp(this.hero.xp, this.hero.xpToLevel, this.hero.level)
-      this.hud.setDodge(this.hero.rollCooldown)
+      this.hud.setDodge(this.hero.rollCooldown, this.hero.rollCooldownMax)
     }
 
     // smooth isometric follow + decaying shake

@@ -5,7 +5,7 @@ import type { Enemy } from './enemy'
 import { WORLD_RADIUS } from './world'
 
 /** Yaw the GLB needs so "facing angle 0" looks down +Z. */
-const MODEL_YAW = Math.PI
+const MODEL_YAW = 0
 
 const RUN_SPEED = 6.8
 const TURN_SPEED = 14
@@ -63,6 +63,7 @@ export class Hero {
   // roll state
   private rollT = 0
   rollCooldown = 0
+  readonly rollCooldownMax = ROLL_COOLDOWN
   private rollDir = new THREE.Vector3(0, 0, 1)
 
   private sinceDamaged = 99
@@ -95,7 +96,7 @@ export class Hero {
       helmet.root.scale.multiplyScalar(1 / root.scale.x)
     }
 
-    this.lantern = new THREE.PointLight(0xffc477, 24, 18, 1.6)
+    this.lantern = new THREE.PointLight(0xffc477, 32, 22, 1.5)
     this.lantern.position.set(0, 2.8, 0)
     this.group.add(this.lantern)
 

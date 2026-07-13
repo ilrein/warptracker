@@ -18,7 +18,8 @@ export class Hud {
   private banner = document.getElementById('banner')!
   private deathOverlay = document.getElementById('death-overlay')!
   private hudRoot = document.getElementById('hud')!
-  private dodgePip = document.getElementById('dodge-pip')!
+  private dodgeSlot = document.getElementById('slot-dodge')!
+  private dodgeCd = document.getElementById('dodge-cd')!
   private bannerTimer = 0
 
   setHealth(hp: number, max: number): void {
@@ -44,8 +45,10 @@ export class Hud {
     this.killsLabel.textContent = `Kills: ${kills}`
   }
 
-  setDodge(cooldownRemaining: number): void {
-    this.dodgePip.classList.toggle('ready', cooldownRemaining <= 0)
+  setDodge(cooldownRemaining: number, cooldownMax: number): void {
+    const ready = cooldownRemaining <= 0
+    this.dodgeSlot.classList.toggle('ready', ready)
+    this.dodgeCd.style.height = ready ? '0%' : `${(cooldownRemaining / cooldownMax) * 100}%`
   }
 
   showBanner(text: string, ms = 2600): void {

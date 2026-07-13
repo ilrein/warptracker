@@ -18,11 +18,26 @@
       </div>
       <div id="bottom-bar">
         <div id="health-globe"><div id="health-fill"></div><span id="health-text"></span></div>
-        <div id="xp-wrap">
-          <div id="level-badge">1</div>
-          <div id="xp-bar"><div id="xp-fill"></div></div>
+        <div id="center-cluster">
+          <div id="action-bar">
+            <div class="slot" id="slot-attack">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20 L15 9 M13 5 l6 6 M17 3 l4 4 -8 8 -6 -6 z M4 20 l2.5 -0.5 M4 20 l0.5 -2.5"/></svg>
+              <span class="key">LMB</span>
+            </div>
+            <div class="slot ready" id="slot-dodge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 12 a8 8 0 1 1 -2.3 -5.6 M18 3 v4 h-4"/></svg>
+              <div class="cd" id="dodge-cd"></div>
+              <span class="key">SPACE</span>
+            </div>
+            <div class="slot locked"><span class="key">1</span></div>
+            <div class="slot locked"><span class="key">2</span></div>
+            <div class="slot locked"><span class="key">3</span></div>
+          </div>
+          <div id="xp-wrap">
+            <div id="level-badge">1</div>
+            <div id="xp-bar"><div id="xp-fill"></div></div>
+          </div>
         </div>
-        <div id="dodge-pip" class="ready">SPACE</div>
       </div>
       <div id="banner"></div>
       <div id="death-overlay"><h1>YOU HAVE FALLEN</h1><p>The warps grow stronger&hellip; respawning</p></div>

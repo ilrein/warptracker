@@ -10,17 +10,17 @@ export function buildWorld(scene: THREE.Scene): void {
 
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(WORLD_RADIUS + 18, 64),
-    new THREE.MeshStandardMaterial({ color: 0x14121c, roughness: 1 })
+    new THREE.MeshStandardMaterial({ color: 0x1d1a29, roughness: 1 })
   )
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   ground.name = 'ground'
   scene.add(ground)
 
-  const hemi = new THREE.HemisphereLight(0x5a5480, 0x1a1528, 3.2)
+  const hemi = new THREE.HemisphereLight(0x6a6494, 0x241e38, 4.4)
   scene.add(hemi)
 
-  const moon = new THREE.DirectionalLight(0x8aa0c8, 1.8)
+  const moon = new THREE.DirectionalLight(0x9ab2dc, 2.6)
   moon.position.set(-30, 40, -20)
   moon.castShadow = true
   moon.shadow.mapSize.set(2048, 2048)
