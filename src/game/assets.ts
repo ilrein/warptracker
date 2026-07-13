@@ -7,7 +7,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
  * Quaternius CC0 models (see ASSETS.md). Each GLB carries its own animation
  * clips, loaded once and cloned per entity via SkeletonUtils.
  */
-const NAMES = ['knight', 'sword', 'helmet', 'skeleton', 'bat', 'ghost', 'demon'] as const
+const NAMES = ['hero', 'knight', 'sword', 'helmet', 'skeleton', 'bat', 'ghost', 'demon'] as const
 export type ModelName = (typeof NAMES)[number]
 
 interface CachedModel {

@@ -353,7 +353,7 @@ export class SkillSystem {
     const ok = this.hero.overrideMotion({
       duration: SUNDER_DURATION,
       invulnerable: true,
-      anim: 'leap',
+      anim: 'Sword_Heavy_Combo',
       tick: (_dt, t01) => {
         const arc = (t: number): number => SUNDER_PEAK * 4 * t * (1 - t)
         step.copy(target).sub(start).multiplyScalar(t01 - prev)
@@ -386,7 +386,7 @@ export class SkillSystem {
     const step = new THREE.Vector3()
     const ok = this.hero.overrideMotion({
       duration: SPIN_DURATION,
-      anim: 'spin',
+      anim: 'Sword_Attack',
       tick: (dt) => {
         this.aimDir(_dir)
         return step.copy(_dir).multiplyScalar(SPIN_MOVE_SPEED * dt)
@@ -646,7 +646,7 @@ export class SkillSystem {
     const ok = this.hero.overrideMotion({
       duration: DASH_TIME,
       invulnerable: true,
-      anim: 'dash',
+      anim: 'Sword_Dash',
       tick: (_dt, t01) => {
         while (rings < 4 && t01 >= (rings + 1) * 0.25 - 0.01) {
           spawnRing(this.scene, this.hero.position, BLUE_GRAY, 0.25, 1.0, 0.3, { opacity: 0.5, y: 0.9 })

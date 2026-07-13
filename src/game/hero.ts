@@ -23,9 +23,9 @@ interface ComboStage {
 }
 
 const COMBO: ComboStage[] = [
-  { anim: 'Run_swordAttack', time: 0.4, hitAt: 0.18, dmgMult: 1.0, lunge: 2.0 },
-  { anim: 'Run_swordAttack', time: 0.36, hitAt: 0.16, dmgMult: 1.0, lunge: 2.2 },
-  { anim: 'swordAttackJump', time: 0.55, hitAt: 0.3, dmgMult: 1.8, lunge: 2.8 },
+  { anim: 'Sword_Regular_A', time: 0.4, hitAt: 0.18, dmgMult: 1.0, lunge: 2.0 },
+  { anim: 'Sword_Regular_B', time: 0.36, hitAt: 0.16, dmgMult: 1.0, lunge: 2.2 },
+  { anim: 'Sword_Heavy_Combo', time: 0.55, hitAt: 0.3, dmgMult: 1.8, lunge: 2.8 },
 ]
 const ATTACK_RANGE = 2.9
 const ATTACK_ARC_COS = 0.2 // ~±78° half-arc
@@ -58,7 +58,7 @@ export interface MotionOverride {
 // tilted off pure bone-X so the resting blade reads "ready stance", not "cane"
 const BLADE_TARGET_R = new THREE.Vector3(1, 0, -0.9).normalize()
 const BLADE_TARGET_L = new THREE.Vector3(-1, -0.7, 0).normalize() // high guard — dual-wield reads high/low
-const GRIP_OFFSET = new THREE.Vector3(0, 0.13, 0)
+const GRIP_OFFSET = new THREE.Vector3(0, 0.07, 0)
 
 /** longest bounding-box axis of the model = the blade direction, in local space */
 function detectBladeAxis(root: THREE.Object3D): THREE.Vector3 {
@@ -98,13 +98,14 @@ export function attachGear(
     }
     bone.add(sword.root)
   }
-  addSword(['palm', 'r'])
-  if (loadout.dualSwords) addSword(['palm', 'l'])
+  addSword(['hand', 'r'])
+  if (loadout.dualSwords) addSword(['hand', 'l'])
   if (loadout.helmet) {
     const head = findBone(root, 'head')
     if (head) {
-      const helmet = instantiate('helmet', 0.55)
+      const helmet = instantiate('helmet', 0.35)
       helmet.root.scale.multiplyScalar(inv)
+      helmet.root.position.y = 0.1 // head bone sits at the skull base; lift onto the crown
       head.add(helmet.root)
     }
   }
@@ -168,7 +169,7 @@ export class Hero {
       hitAt: s.hitAt / classDef.attackSpeed,
     }))
 
-    const { root, clips } = instantiate('knight', 1.85)
+    const { root, clips } = instantiate('hero', 1.85)
     root.rotation.y = MODEL_YAW
     this.group.add(root)
     this.anim = new Animator(root, clips)
@@ -178,7 +179,7 @@ export class Hero {
     this.lantern.position.set(0, 2.8, 0)
     this.group.add(this.lantern)
 
-    this.anim.play('Idle_swordRight')
+    this.anim.play('Sword_Idle')
     this.group.position.copy(TOWN_CENTER).add(new THREE.Vector3(0, 0, 2))
     scene.add(this.group)
   }
@@ -263,7 +264,7 @@ export class Hero {
     if (this.hp <= 0) {
       this.cancelMotion()
       this.state = 'dead'
-      this.anim.play('Death', { loop: false, fade: 0.1 })
+      this.anim.play('Death01', { loop: false, fade: 0.1 })
     }
   }
 
@@ -274,7 +275,7 @@ export class Hero {
     this.state = 'idle'
     this.comboStage = 0
     this.rollCooldown = 0
-    this.anim.play('Idle_swordRight')
+    this.anim.play('Sword_Idle')
   }
 
   /** temporarily drive hero motion (leap/spin/dash/blink) — see contracts */
@@ -323,7 +324,7 @@ export class Hero {
     this.targetYaw = Math.atan2(this.rollDir.x, this.rollDir.z)
     this.yaw = this.targetYaw
     this.group.rotation.y = this.yaw
-    this.anim.play(this.anim.has('Roll_sword') ? 'Roll_sword' : 'Roll', {
+    this.anim.play('Roll', {
       loop: false,
       duration: ROLL_TIME,
       fade: 0.05,
@@ -401,7 +402,7 @@ export class Hero {
       const m = this.motion
       if (!m) {
         this.state = 'idle'
-        this.anim.play('Idle_swordRight')
+        this.anim.play('Sword_Idle')
       } else {
         m.t += dt
         const disp = m.tick?.(dt, Math.min(1, m.t / m.duration))
@@ -412,7 +413,7 @@ export class Hero {
         if (m.t >= m.duration) {
           this.motion = null
           this.state = 'idle'
-          this.anim.play('Idle_swordRight')
+          this.anim.play('Sword_Idle')
           m.onEnd?.()
         }
       }
@@ -424,7 +425,7 @@ export class Hero {
       this.step(this.rollDir, ROLL_SPEED * (1 - (this.rollT / ROLL_TIME) * 0.4), dt)
       if (this.rollT >= ROLL_TIME) {
         this.state = 'idle'
-        this.anim.play('Idle_swordRight')
+        this.anim.play('Sword_Idle')
       }
       return
     }
@@ -447,7 +448,7 @@ export class Hero {
           this.startSwing(aim)
         } else {
           this.state = 'idle'
-          this.anim.play('Idle_swordRight')
+          this.anim.play('Sword_Idle')
         }
       }
       return
@@ -459,10 +460,10 @@ export class Hero {
       this.state = 'run'
       this.targetYaw = Math.atan2(move.x, move.z)
       this.step(move, this.runSpeed, dt)
-      this.anim.play('Run_swordRight')
+      this.anim.play('Jog_Fwd_Loop')
     } else {
       this.state = 'idle'
-      this.anim.play('Idle_swordRight')
+      this.anim.play('Sword_Idle')
     }
 
     let d = this.targetYaw - this.yaw
