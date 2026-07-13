@@ -16,7 +16,7 @@ function ac(): AudioContext | null {
   return ctx
 }
 
-function tone(
+export function tone(
   freq: number,
   duration: number,
   type: OscillatorType,

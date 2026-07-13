@@ -10,12 +10,14 @@
   </head>
   <body>
     <div id="app"></div>
+    <div id="fade"></div>
     <div id="hud">
       <div id="top-bar">
-        <div id="rift-label">Rift I</div>
-        <div id="warps-label">Warps: 0</div>
+        <div id="zone-label">Emberwatch</div>
+        <div id="spires-label">Spires: 0</div>
         <div id="kills-label">Kills: 0</div>
       </div>
+      <div id="boss-bar"><span id="boss-name"></span><div id="boss-track"><div id="boss-fill"></div></div></div>
       <div id="bottom-bar">
         <div id="health-globe"><div id="health-fill"></div><span id="health-text"></span></div>
         <div id="center-cluster">
@@ -29,22 +31,23 @@
               <div class="cd" id="dodge-cd"></div>
               <span class="key">SPACE</span>
             </div>
-            <div class="slot locked"><span class="key">1</span></div>
-            <div class="slot locked"><span class="key">2</span></div>
-            <div class="slot locked"><span class="key">3</span></div>
+            <div class="slot locked" id="slot-skill-0"><span class="icon"></span><div class="cd"></div><span class="key">1</span></div>
+            <div class="slot locked" id="slot-skill-1"><span class="icon"></span><div class="cd"></div><span class="key">2</span></div>
+            <div class="slot locked" id="slot-skill-2"><span class="icon"></span><div class="cd"></div><span class="key">3</span></div>
           </div>
           <div id="xp-wrap">
             <div id="level-badge">1</div>
             <div id="xp-bar"><div id="xp-fill"></div></div>
           </div>
         </div>
+        <div id="mana-globe"><div id="mana-fill"></div><span id="mana-text"></span></div>
       </div>
       <div id="banner"></div>
-      <div id="death-overlay"><h1>YOU HAVE FALLEN</h1><p>The warps grow stronger&hellip; respawning</p></div>
+      <div id="death-overlay"><h1>YOU HAVE FALLEN</h1><p>The fire of Emberwatch calls you home&hellip;</p></div>
       <div id="intro-overlay">
         <h1>WARPTRACKER</h1>
         <p class="tagline">Streams of evil are tearing into the world.<br />You are the Tracker. Hunt the warps. Seal them all.</p>
-        <p class="controls">WASD move &middot; Aim with mouse &middot; Click to attack (chain for combos) &middot; SPACE to dodge &middot; Scroll to zoom</p>
+        <p class="controls">WASD move &middot; Aim with mouse &middot; Click to attack &middot; SPACE dodge &middot; 1/2/3 skills &middot; E talk &middot; Scroll zoom</p>
         <p class="cta" id="loading-status">summoning&hellip;</p>
         <p class="foot">fully open source &middot; <a href="https://github.com/ilrein/warptracker" target="_blank" rel="noopener">github.com/ilrein/warptracker</a></p>
       </div>

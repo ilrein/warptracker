@@ -64,7 +64,8 @@ body {
   gap: 18px;
 }
 
-#health-globe {
+#health-globe,
+#mana-globe {
   position: relative;
   width: 84px;
   height: 84px;
@@ -73,6 +74,31 @@ body {
   background: #1c0a0a;
   overflow: hidden;
   box-shadow: 0 0 18px rgba(0, 0, 0, 0.8), inset 0 0 14px #000;
+}
+
+#mana-globe {
+  background: #0a101c;
+}
+
+#mana-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: radial-gradient(circle at 50% 20%, #60a5fa, #1e3a8a 70%);
+  transition: height 0.15s ease-out;
+}
+
+#mana-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px #000;
 }
 
 #health-fill {
@@ -144,8 +170,12 @@ body {
   right: 0;
   bottom: 0;
   height: 0%;
-  background: rgba(10, 8, 16, 0.75);
-  border-top: 1px solid rgba(134, 239, 172, 0.4);
+  background: rgba(88, 28, 135, 0.55);
+  border-top: 1px solid rgba(196, 181, 253, 0.7);
+}
+
+.slot.locked {
+  filter: grayscale(1);
 }
 
 #slot-attack {
@@ -163,10 +193,20 @@ body {
   opacity: 0.45;
 }
 
-.slot.locked .key {
-  position: static;
-  font-size: 14px;
-  color: #52525b;
+.slot .icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.slot.no-mana {
+  filter: saturate(0.3) brightness(0.7);
+}
+
+#slot-skill-0.ready,
+#slot-skill-1.ready,
+#slot-skill-2.ready {
+  border-color: var(--purple);
+  color: #c4b5fd;
 }
 
 #xp-wrap {
@@ -223,6 +263,115 @@ body {
 
 #banner.show {
   opacity: 1;
+}
+
+#banner.boss {
+  color: #fecaca;
+  text-shadow: 0 0 30px #dc2626, 0 0 60px #991b1b, 0 2px 6px #000;
+}
+
+#boss-bar {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(46vw, 460px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+#boss-bar.show {
+  display: flex;
+}
+
+#boss-name {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #fca5a5;
+  text-shadow: 0 1px 4px #000;
+}
+
+#boss-track {
+  width: 100%;
+  height: 8px;
+  border: 1px solid #7f1d1d;
+  border-radius: 4px;
+  background: #18181b;
+  overflow: hidden;
+}
+
+#boss-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #7f1d1d, #dc2626);
+  transition: width 0.15s ease-out;
+}
+
+#fade {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  z-index: 40;
+}
+
+#fade.show {
+  opacity: 1;
+}
+
+.hud-marker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: 13px;
+  color: var(--bone);
+  background: rgba(10, 7, 16, 0.75);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px #000;
+}
+
+.hud-marker.quest-mark {
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--gold);
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6), 0 1px 3px #000;
+}
+
+.hud-marker.poi {
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.4);
+  font-style: italic;
+}
+
+.dmg.warded {
+  color: #e9d5ff;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 10px #7c3aed, 0 1px 3px #000;
+}
+
+#mana-globe.pulse {
+  animation: mana-pulse 0.3s;
+}
+
+@keyframes mana-pulse {
+  50% {
+    box-shadow: 0 0 24px rgba(96, 165, 250, 0.9), inset 0 0 14px #000;
+    border-color: #60a5fa;
+  }
+}
+
+.dmg.loot {
+  color: var(--gold);
 }
 
 .dmg {

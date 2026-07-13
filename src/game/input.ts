@@ -14,6 +14,8 @@ export class InputManager {
   attackHeld = false
   private attackPressed = false
   private dodgePressed = false
+  private interactPressed = false
+  private skillPressed: 0 | 1 | 2 | null = null
   private interacted = false
 
   onZoom?: (delta: number) => void
@@ -27,6 +29,10 @@ export class InputManager {
         this.dodgePressed = true
         e.preventDefault()
       }
+      if (e.code === 'KeyE') this.interactPressed = true
+      if (e.code === 'Digit1') this.skillPressed = 0
+      if (e.code === 'Digit2') this.skillPressed = 1
+      if (e.code === 'Digit3') this.skillPressed = 2
       this.markInteracted()
     })
     window.addEventListener('keyup', (e) => this.keys.delete(e.code))
@@ -93,6 +99,20 @@ export class InputManager {
   takeDodgePressed(): boolean {
     const v = this.dodgePressed
     this.dodgePressed = false
+    return v
+  }
+
+  /** Edge-triggered: true once per E press. */
+  takeInteractPressed(): boolean {
+    const v = this.interactPressed
+    this.interactPressed = false
+    return v
+  }
+
+  /** Edge-triggered: skill slot index pressed this frame, once. */
+  takeSkillPressed(): 0 | 1 | 2 | null {
+    const v = this.skillPressed
+    this.skillPressed = null
     return v
   }
 }
