@@ -19,11 +19,18 @@ An asset may be included only if it is one of:
 
 ## Good CC0 sources
 
+- [Quaternius](https://quaternius.com) — CC0 low-poly 3D models; the Universal Animation Library + Universal Base Characters are our preferred character/animation stack
 - [Kenney](https://kenney.nl) — CC0 game assets
-- [Quaternius](https://quaternius.com) — CC0 low-poly 3D models
 - [Poly Haven](https://polyhaven.com) — CC0 HDRIs/textures/models
 - [OpenGameArt](https://opengameart.org) — filter by CC0
+- [poly.pizza](https://poly.pizza) — CC0 model search
 - [freesound](https://freesound.org) — filter by CC0
+
+## Art direction notes
+
+- **No KayKit packs.** They're CC0 and lovely, but heavily used across community games (including World of Claudecraft) — Warptracker should not look like a reskin. Prefer Quaternius, Kenney, or procedural.
+- **No Mixamo.** Free to use but not CC0 — its license forbids redistributing raw animation files, which committing to this repo would do. Quaternius's animation libraries cover the same ground as CC0.
+- Environment/world leans procedural first; downloaded assets are mainly for characters, creatures, and animation.
 
 Every non-procedural asset added must be listed in this file with its source link and license confirmation.
 
