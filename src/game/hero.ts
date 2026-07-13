@@ -50,18 +50,23 @@ export interface MotionOverride {
 }
 
 /**
- * Grip fits, tuned by screenshot iteration against the animated poses:
- * with rot (-90°x, 180°y) the blade leaves the top of the fist and rests
- * forward-down in idle — see docs/media if retuning.
+ * Grip calibration, measured in Blender against the actual rig (see docs):
+ * a natural grip = blade aligned with the palm bone's LOCAL +X axis,
+ * hand centered 0.13 rig-units along the fingers (bone +Y).
+ * The blade's own axis is detected from the mesh, so any weapon model works.
  */
-export const SWORD_FIT = {
-  pos: [0, 0, 0] as [number, number, number],
-  rot: [-Math.PI / 2, Math.PI, 0] as [number, number, number],
-}
-/** left-hand mirror for dual wield: the mirrored bone needs the opposite x quarter-turn */
-export const SWORD_FIT_L = {
-  pos: [0, 0, 0] as [number, number, number],
-  rot: [Math.PI / 2, Math.PI, 0] as [number, number, number],
+const BLADE_TARGET_R = new THREE.Vector3(1, 0, 0)
+const BLADE_TARGET_L = new THREE.Vector3(-1, 0, 0)
+const GRIP_OFFSET = new THREE.Vector3(0, 0.13, 0)
+
+/** longest bounding-box axis of the model = the blade direction, in local space */
+function detectBladeAxis(root: THREE.Object3D): THREE.Vector3 {
+  const box = new THREE.Box3().setFromObject(root)
+  const size = box.getSize(new THREE.Vector3())
+  const axis = size.x > size.y && size.x > size.z ? 'x' : size.y > size.z ? 'y' : 'z'
+  const dir = new THREE.Vector3()
+  dir[axis] = Math.abs(box.max[axis]) >= Math.abs(box.min[axis]) ? 1 : -1
+  return dir
 }
 
 /** Attach class loadout gear to a knight model (also used for NPC props). */
@@ -74,10 +79,11 @@ export function attachGear(
     const bone = findBone(root, ...boneTokens)
     if (!bone) return
     const sword = instantiate('sword', 1.1)
+    const blade = detectBladeAxis(sword.root)
     sword.root.scale.multiplyScalar(inv)
-    const fit = boneTokens.includes('l') ? SWORD_FIT_L : SWORD_FIT
-    sword.root.position.set(...fit.pos)
-    sword.root.rotation.set(...fit.rot)
+    const target = boneTokens.includes('l') ? BLADE_TARGET_L : BLADE_TARGET_R
+    sword.root.quaternion.setFromUnitVectors(blade, target)
+    sword.root.position.copy(GRIP_OFFSET)
     if (loadout.bladeEmissive !== undefined) {
       sword.root.traverse((o) => {
         const mesh = o as THREE.Mesh
