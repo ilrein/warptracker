@@ -56,8 +56,8 @@ export interface MotionOverride {
  * The blade's own axis is detected from the mesh, so any weapon model works.
  */
 // tilted off pure bone-X so the resting blade reads "ready stance", not "cane"
-const BLADE_TARGET_R = new THREE.Vector3(1, 0, -0.9).normalize()
-const BLADE_TARGET_L = new THREE.Vector3(-1, -0.7, 0).normalize() // high guard — dual-wield reads high/low
+const BLADE_TARGET_R = new THREE.Vector3(1, 0, -0.9).normalize() // TODO: sweep with user — reads as stylish reverse grip
+const BLADE_TARGET_L = new THREE.Vector3(1, 0.7, 0).normalize()
 const GRIP_OFFSET = new THREE.Vector3(0, 0.07, 0)
 
 /** longest bounding-box axis of the model = the blade direction, in local space */
