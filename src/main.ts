@@ -3,9 +3,12 @@ import { Game } from './game/game'
 import { loadAssets } from './game/assets'
 import { showClassSelect } from './game/classes'
 
+declare const __BUILD_ID__: string
+
 const status = document.getElementById('loading-status')!
 const intro = document.getElementById('intro-overlay')!
 intro.classList.add('show')
+document.getElementById('build-tag')!.textContent = __BUILD_ID__
 
 async function boot(): Promise<void> {
   await loadAssets((done, total) => {
