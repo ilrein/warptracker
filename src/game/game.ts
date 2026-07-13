@@ -8,6 +8,7 @@ import { InputManager } from './input'
 import { audio } from './audio'
 
 const CAMERA_OFFSET = new THREE.Vector3(14, 18, 14)
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X']
 
 export class Game {
   private renderer: THREE.WebGLRenderer
@@ -23,10 +24,18 @@ export class Game {
 
   private rift = 1
   private kills = 0
-  private viewSize = 13
+  private viewSize = 12
   private riftTransition = -1
   private respawnT = -1
   private started = false
+
+  // combat feel
+  private hitstopT = 0
+  private shakeAmp = 0
+
+  // camera-relative movement basis for the fixed isometric angle
+  private camForward = new THREE.Vector3(-1, 0, -1).normalize()
+  private camRight = new THREE.Vector3(1, 0, -1).normalize()
 
   constructor(container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -34,6 +43,8 @@ export class Game {
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+    this.renderer.toneMappingExposure = 1.35
     container.appendChild(this.renderer.domElement)
 
     this.camera = new THREE.OrthographicCamera(0, 0, 0, 0, 0.1, 200)
@@ -45,10 +56,19 @@ export class Game {
     this.hero = new Hero(this.scene)
     this.wireHero()
 
-    this.input = new InputManager(this.renderer.domElement, this.camera, this.scene, () =>
-      this.enemies.filter((e) => e.alive).map((e) => e.group)
-    )
-    this.wireInput()
+    this.input = new InputManager(this.renderer.domElement)
+    this.input.onFirstInteraction = () => {
+      audio.unlock()
+      if (!this.started) {
+        this.started = true
+        document.getElementById('intro-overlay')!.classList.remove('show')
+        this.startRift(1)
+      }
+    }
+    this.input.onZoom = (delta) => {
+      this.viewSize = THREE.MathUtils.clamp(this.viewSize + delta * 1.4, 8, 20)
+      this.updateCameraFrustum()
+    }
 
     window.addEventListener('resize', () => {
       this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -64,48 +84,50 @@ export class Game {
 
   private wireHero(): void {
     this.hero.onSwing = () => audio.swing()
-    this.hero.onDealDamage = (enemy, amount) => {
-      enemy.takeDamage(amount)
-      audio.hit()
-      this.hud.spawnFloatingText(
-        enemy.position.clone().setY(1.6),
-        this.camera,
-        String(amount)
-      )
-      if (enemy.hp <= 0 && enemy.alive) this.killEnemy(enemy)
+    this.hero.onRoll = () => audio.dodge()
+    this.hero.onStrike = (hits) => {
+      for (const { enemy, amount, finisher } of hits) {
+        const knockDir = enemy.position.clone().sub(this.hero.position)
+        knockDir.y = 0
+        knockDir.normalize().multiplyScalar(finisher ? 1.1 : 0.35)
+        enemy.takeDamage(amount, knockDir)
+        this.hud.spawnFloatingText(enemy.position.clone().setY(1.8), this.camera, String(amount))
+        if (!enemy.alive) this.onEnemyKilled(enemy)
+      }
+      if (hits.length) {
+        audio.hit()
+        const killed = hits.some((h) => !h.enemy.alive)
+        const finisher = hits.some((h) => h.finisher)
+        this.hitstop(killed || finisher ? 0.09 : 0.045)
+        this.shake(killed ? 0.3 : finisher ? 0.22 : 0.1)
+      }
     }
   }
 
-  private wireInput(): void {
-    this.input.onFirstInteraction = () => {
-      audio.unlock()
-      if (!this.started) {
-        this.started = true
-        document.getElementById('intro-overlay')!.classList.remove('show')
-        this.startRift(1)
-      }
+  private registerEnemy(enemy: Enemy): void {
+    enemy.onHitHero = (amount) => {
+      const before = this.hero.hp
+      this.hero.takeDamage(amount)
+      if (this.hero.hp === before) return // dodged (i-frames) or already dead
+      audio.hurt()
+      this.shake(0.25)
+      this.hud.spawnFloatingText(this.hero.position.clone().setY(2.5), this.camera, `-${amount}`, 'hero')
+      if (!this.hero.alive && this.respawnT < 0) this.onHeroDeath()
     }
-    this.input.onPick = ({ enemyIndex, ground }) => {
-      if (!this.started || !this.hero.alive) return
-      if (enemyIndex !== null && this.enemies[enemyIndex]?.alive) {
-        this.hero.attack(this.enemies[enemyIndex])
-      } else if (ground) {
-        this.hero.moveTo(ground)
-      }
-    }
-    this.input.onZoom = (delta) => {
-      this.viewSize = THREE.MathUtils.clamp(this.viewSize + delta * 1.4, 8, 22)
-      this.updateCameraFrustum()
-    }
+    this.enemies.push(enemy)
   }
 
-  private updateCameraFrustum(): void {
-    const aspect = window.innerWidth / window.innerHeight
-    this.camera.left = -this.viewSize * aspect
-    this.camera.right = this.viewSize * aspect
-    this.camera.top = this.viewSize
-    this.camera.bottom = -this.viewSize
-    this.camera.updateProjectionMatrix()
+  private onEnemyKilled(enemy: Enemy): void {
+    this.kills++
+    audio.kill()
+    this.hud.setKills(this.kills)
+    const xp = enemy.xpValue()
+    const leveled = this.hero.gainXp(xp)
+    this.hud.spawnFloatingText(enemy.position.clone().setY(1.2), this.camera, `+${xp} xp`, 'xp')
+    if (leveled) {
+      audio.levelUp()
+      this.hud.showBanner(`Level ${this.hero.level}`, 1800)
+    }
   }
 
   private startRift(rift: number): void {
@@ -123,42 +145,7 @@ export class Game {
     }
     this.hud.setRift(rift)
     this.hud.setWarps(this.openWarpCount())
-    this.hud.showBanner(`Rift ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][rift - 1] ?? rift} — ${warpCount} warps detected`)
-  }
-
-  private registerEnemy(enemy: Enemy): void {
-    enemy.group.userData.enemyIndex = this.enemies.length
-    enemy.onHitHero = (amount) => {
-      this.hero.takeDamage(amount)
-      audio.hurt()
-      this.hud.spawnFloatingText(
-        this.hero.position.clone().setY(2.4),
-        this.camera,
-        `-${amount}`,
-        'hero'
-      )
-      if (!this.hero.alive && this.respawnT < 0) this.onHeroDeath()
-    }
-    this.enemies.push(enemy)
-  }
-
-  private killEnemy(enemy: Enemy): void {
-    enemy.die()
-    this.kills++
-    audio.kill()
-    this.hud.setKills(this.kills)
-    const xp = enemy.elite ? 55 + this.rift * 10 : 14 + this.rift * 4
-    const leveled = this.hero.gainXp(xp)
-    this.hud.spawnFloatingText(
-      enemy.position.clone().setY(1.2),
-      this.camera,
-      `+${xp} xp`,
-      'xp'
-    )
-    if (leveled) {
-      audio.levelUp()
-      this.hud.showBanner(`Level ${this.hero.level}`, 1800)
-    }
+    this.hud.showBanner(`Rift ${ROMAN[rift - 1] ?? rift} — ${warpCount} warps detected`)
   }
 
   private openWarpCount(): number {
@@ -185,18 +172,55 @@ export class Game {
     this.respawnT = 3
   }
 
-  private tick(): void {
-    const dt = Math.min(this.clock.getDelta(), 0.05)
+  private updateCameraFrustum(): void {
+    const aspect = window.innerWidth / window.innerHeight
+    this.camera.left = -this.viewSize * aspect
+    this.camera.right = this.viewSize * aspect
+    this.camera.top = this.viewSize
+    this.camera.bottom = -this.viewSize
+    this.camera.updateProjectionMatrix()
+  }
 
-    this.input.update(dt)
+  hitstop(seconds: number): void {
+    this.hitstopT = Math.max(this.hitstopT, seconds)
+  }
+
+  shake(amp: number): void {
+    this.shakeAmp = Math.min(0.5, this.shakeAmp + amp)
+  }
+
+  private tick(): void {
+    const realDt = Math.min(this.clock.getDelta(), 0.05)
+    let dt = realDt
+    if (this.hitstopT > 0) {
+      this.hitstopT -= realDt
+      dt = 0
+    }
+
+    const aim = this.input.aimPoint(this.camera)
 
     if (this.started) {
-      this.hero.update(dt, this.enemies)
-      for (const warp of this.warps) warp.update(dt)
-      for (const enemy of this.enemies) enemy.update(dt, this.hero, this.enemies)
+      // movement input, rotated into the isometric ground plane
+      const raw = this.input.moveInput()
+      const move = new THREE.Vector3()
+        .addScaledVector(this.camForward, raw.y)
+        .addScaledVector(this.camRight, raw.x)
+      if (move.lengthSq() > 1) move.normalize()
+
+      if (this.hero.alive && dt > 0) {
+        if (this.input.takeDodgePressed()) this.hero.dodge(move)
+        if (this.input.takeAttackPressed()) this.hero.attack(aim)
+      }
+
+      if (dt > 0) {
+        this.hero.update(dt, this.enemies, move, aim, this.input.attackHeld)
+        for (const warp of this.warps) warp.update(dt)
+        for (const enemy of this.enemies) enemy.update(dt, this.hero, this.enemies)
+        this.enemies = this.enemies.filter((e) => !e.removed)
+      }
 
       if (this.respawnT >= 0) {
-        this.respawnT -= dt
+        this.respawnT -= realDt
         if (this.respawnT < 0) {
           this.hero.respawn()
           this.hud.setDead(false)
@@ -204,22 +228,27 @@ export class Game {
       }
 
       if (this.riftTransition >= 0) {
-        this.riftTransition -= dt
+        this.riftTransition -= realDt
         if (this.riftTransition < 0) {
           this.warps = []
-          this.enemies = this.enemies.filter((e) => e.alive)
-          this.enemies.forEach((e, i) => (e.group.userData.enemyIndex = i))
           this.startRift(this.rift + 1)
         }
       }
 
       this.hud.setHealth(this.hero.hp, this.hero.maxHp)
       this.hud.setXp(this.hero.xp, this.hero.xpToLevel, this.hero.level)
+      this.hud.setDodge(this.hero.rollCooldown)
     }
 
-    // smooth isometric follow
+    // smooth isometric follow + decaying shake
     const targetPos = this.hero.position.clone().add(CAMERA_OFFSET)
-    this.camera.position.lerp(targetPos, Math.min(1, dt * 5))
+    this.camera.position.lerp(targetPos, Math.min(1, realDt * 6))
+    if (this.shakeAmp > 0.005) {
+      const t = performance.now() * 0.05
+      this.camera.position.x += Math.sin(t * 1.7) * this.shakeAmp
+      this.camera.position.y += Math.cos(t * 2.3) * this.shakeAmp * 0.6
+      this.shakeAmp *= Math.max(0, 1 - realDt * 7)
+    }
     const look = this.camera.position.clone().sub(CAMERA_OFFSET)
     this.camera.lookAt(look)
 

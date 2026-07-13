@@ -1,13 +1,20 @@
 import * as THREE from 'three'
-import { Enemy } from './enemy'
+import { Enemy, type EnemyKindId } from './enemy'
 
-const SPAWN_INTERVAL = 2.6
+const SPAWN_INTERVAL = 2.7
 const ALIVE_CAP = 4
+
+function rollKind(rand: number): EnemyKindId {
+  if (rand < 0.5) return 'skeleton'
+  if (rand < 0.75) return 'bat'
+  return 'ghost'
+}
 
 /**
  * A warp — a tear in the world through which evil streams in.
- * It spawns warpspawn from a finite budget; once the budget is spent and
- * every creature it birthed is dead, the warp collapses and seals.
+ * It spawns warpspawn from a finite budget; the final spawn is always an
+ * elite demon guardian. Once the budget is spent and every creature it
+ * birthed is dead, the warp collapses and seals.
  */
 export class Warp {
   group = new THREE.Group()
@@ -30,7 +37,7 @@ export class Warp {
   constructor(scene: THREE.Scene, position: THREE.Vector3, rift: number) {
     this.scene = scene
     this.rift = rift
-    this.budget = 6 + rift * 2
+    this.budget = 5 + rift * 2
 
     this.ring = new THREE.Mesh(
       new THREE.TorusGeometry(1.6, 0.14, 10, 40),
@@ -80,7 +87,6 @@ export class Warp {
     return this.group.position
   }
 
-  /** Enemies this warp spawned that are still alive. */
   private aliveCount(): number {
     return this.spawned.filter((e) => e.alive).length
   }
@@ -91,7 +97,6 @@ export class Warp {
     const t = performance.now() * 0.001 + this.pulseSeed
 
     if (this.closingT >= 0) {
-      // collapse animation, then remove
       this.closingT += dt
       const k = Math.max(0, 1 - this.closingT / 0.9)
       this.group.scale.setScalar(k)
@@ -115,18 +120,18 @@ export class Warp {
       mote.position.set(Math.cos(a) * 1.6, 0.5 + Math.sin(t * 2 + i) * 0.5, Math.sin(a) * 1.6)
     })
 
-    // spawn from remaining budget
     if (this.budget > 0) {
       this.spawnTimer -= dt
       if (this.spawnTimer <= 0 && this.aliveCount() < ALIVE_CAP) {
         this.spawnTimer = SPAWN_INTERVAL
         this.budget--
-        const elite = this.budget === 0 // last one out is always an elite
+        // the last thing out of every warp is its elite guardian
+        const kind: EnemyKindId = this.budget === 0 ? 'demon' : rollKind(Math.random())
         const angle = Math.random() * Math.PI * 2
         const pos = this.position
           .clone()
           .add(new THREE.Vector3(Math.cos(angle) * 1.2, 0, Math.sin(angle) * 1.2))
-        const enemy = new Enemy(this.scene, pos, this.rift, elite)
+        const enemy = new Enemy(this.scene, pos, this.rift, kind)
         this.spawned.push(enemy)
         this.onSpawn?.(enemy)
       }

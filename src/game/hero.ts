@@ -1,33 +1,105 @@
 import * as THREE from 'three'
+import { instantiate, findBone } from './assets'
+import { Animator } from './animator'
 import type { Enemy } from './enemy'
 import { WORLD_RADIUS } from './world'
 
-const ATTACK_RANGE = 2.4
-const ATTACK_COOLDOWN = 0.55
-const SPLASH_RADIUS = 1.8
-const SPLASH_FACTOR = 0.4
+/** Yaw the GLB needs so "facing angle 0" looks down +Z. */
+const MODEL_YAW = Math.PI
 
-/** The Tracker — player-controlled hero. Procedural low-poly model. */
+const RUN_SPEED = 6.8
+const TURN_SPEED = 14
+
+const ROLL_TIME = 0.42
+const ROLL_SPEED = 13
+const ROLL_COOLDOWN = 1.4
+
+interface ComboStage {
+  anim: string
+  time: number
+  hitAt: number
+  dmgMult: number
+  lunge: number
+}
+
+const COMBO: ComboStage[] = [
+  { anim: 'Run_swordAttack', time: 0.4, hitAt: 0.18, dmgMult: 1.0, lunge: 2.0 },
+  { anim: 'Run_swordAttack', time: 0.36, hitAt: 0.16, dmgMult: 1.0, lunge: 2.2 },
+  { anim: 'swordAttackJump', time: 0.55, hitAt: 0.3, dmgMult: 1.8, lunge: 2.8 },
+]
+const ATTACK_RANGE = 2.9
+const ATTACK_ARC_COS = 0.2 // ~±78° half-arc
+const COMBO_RESET_AFTER = 0.7
+
+type HeroState = 'idle' | 'run' | 'attack' | 'roll' | 'dead'
+
+export interface StrikeResult {
+  enemy: Enemy
+  amount: number
+  finisher: boolean
+}
+
+/** The Tracker: Quaternius knight with sword combos and an i-frame dodge roll. */
 export class Hero {
   group = new THREE.Group()
   maxHp = 100
   hp = 100
   level = 1
   xp = 0
-  speed = 6.5
 
-  private destination: THREE.Vector3 | null = null
-  private attackTimer = 0
-  private swingTime = 0
-  private swordArm!: THREE.Group
-  private lantern!: THREE.PointLight
-  target: Enemy | null = null
+  state: HeroState = 'idle'
+  private anim: Animator
+  private yaw = 0
+  private targetYaw = 0
 
-  onDealDamage?: (enemy: Enemy, amount: number) => void
+  // attack state
+  private comboStage = 0
+  private stageT = 0
+  private hitDone = false
+  private queuedNext = false
+  private comboIdleT = 0
+  private attackDir = new THREE.Vector3(0, 0, 1)
+
+  // roll state
+  private rollT = 0
+  rollCooldown = 0
+  private rollDir = new THREE.Vector3(0, 0, 1)
+
+  private sinceDamaged = 99
+  private lantern: THREE.PointLight
+
+  onStrike?: (hits: StrikeResult[]) => void
   onSwing?: () => void
+  onRoll?: () => void
 
   constructor(scene: THREE.Scene) {
-    this.buildModel()
+    const { root, clips } = instantiate('knight', 1.85)
+    root.rotation.y = MODEL_YAW
+    this.group.add(root)
+    this.anim = new Animator(root, clips)
+
+    const palm = findBone(root, 'palm', 'r')
+    if (palm) {
+      const sword = instantiate('sword', 1.1)
+      palm.add(sword.root)
+      // counteract the character's world scale so the sword isn't shrunk twice
+      const inv = 1 / root.scale.x
+      sword.root.scale.multiplyScalar(inv)
+    } else {
+      console.warn('hero: Palm.R bone not found; sword not attached')
+    }
+    const head = findBone(root, 'head')
+    if (head) {
+      const helmet = instantiate('helmet', 0.55)
+      head.add(helmet.root)
+      helmet.root.scale.multiplyScalar(1 / root.scale.x)
+    }
+
+    this.lantern = new THREE.PointLight(0xffc477, 24, 18, 1.6)
+    this.lantern.position.set(0, 2.8, 0)
+    this.group.add(this.lantern)
+
+    this.anim.play('Idle_swordRight')
     scene.add(this.group)
   }
 
@@ -36,7 +108,7 @@ export class Hero {
   }
 
   get damage(): number {
-    return 12 + this.level * 3
+    return 14 + this.level * 3
   }
 
   get xpToLevel(): number {
@@ -44,73 +116,13 @@ export class Hero {
   }
 
   get alive(): boolean {
-    return this.hp > 0
+    return this.state !== 'dead'
   }
 
-  private buildModel(): void {
-    const cloth = new THREE.MeshStandardMaterial({ color: 0x2b3a55, roughness: 0.8 })
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc9a081, roughness: 0.7 })
-    const leather = new THREE.MeshStandardMaterial({ color: 0x4a3222, roughness: 0.9 })
-    const steel = new THREE.MeshStandardMaterial({
-      color: 0xb8c4d4,
-      metalness: 0.85,
-      roughness: 0.25,
-      emissive: 0x223a55,
-      emissiveIntensity: 0.4,
-    })
-
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.8, 6, 12), cloth)
-    body.position.y = 1.0
-    body.castShadow = true
-    this.group.add(body)
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12), skin)
-    head.position.y = 1.95
-    head.castShadow = true
-    this.group.add(head)
-
-    const hood = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.55, 10), cloth)
-    hood.position.y = 2.2
-    this.group.add(hood)
-
-    const belt = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.06, 6, 14), leather)
-    belt.rotation.x = Math.PI / 2
-    belt.position.y = 0.95
-    this.group.add(belt)
-
-    // sword arm pivots at the shoulder so the whole arm swings
-    this.swordArm = new THREE.Group()
-    this.swordArm.position.set(0.5, 1.45, 0)
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.15, 0.03), steel)
-    blade.position.y = -0.75
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.08), leather)
-    guard.position.y = -0.2
-    this.swordArm.add(blade, guard)
-    this.swordArm.rotation.z = -0.5
-    this.group.add(this.swordArm)
-
-    this.lantern = new THREE.PointLight(0xffc477, 14, 16, 1.8)
-    this.lantern.position.set(0, 2.6, 0)
-    this.group.add(this.lantern)
+  get invulnerable(): boolean {
+    return this.state === 'roll'
   }
 
-  moveTo(point: THREE.Vector3): void {
-    this.destination = point.clone()
-    this.destination.y = 0
-    this.target = null
-  }
-
-  attack(enemy: Enemy): void {
-    this.target = enemy
-    this.destination = null
-  }
-
-  takeDamage(amount: number): void {
-    if (!this.alive) return
-    this.hp -= amount
-  }
-
-  /** @returns xp overflow leftover after leveling, for the HUD */
   gainXp(amount: number): boolean {
     this.xp += amount
     let leveled = false
@@ -124,87 +136,164 @@ export class Hero {
     return leveled
   }
 
+  takeDamage(amount: number): void {
+    if (!this.alive || this.invulnerable) return
+    this.hp -= amount
+    this.sinceDamaged = 0
+    if (this.hp <= 0) {
+      this.state = 'dead'
+      this.anim.play('Death', { loop: false, fade: 0.1 })
+    }
+  }
+
   respawn(): void {
     this.hp = this.maxHp
     this.group.position.set(0, 0, 0)
-    this.destination = null
-    this.target = null
-    this.group.visible = true
+    this.state = 'idle'
+    this.comboStage = 0
+    this.rollCooldown = 0
+    this.anim.play('Idle_swordRight')
   }
 
-  update(dt: number, enemies: Enemy[]): void {
-    if (!this.alive) {
-      this.group.visible = false
+  /** Try to start/queue an attack toward the aim point. */
+  attack(aim: THREE.Vector3 | null): void {
+    if (this.state === 'dead' || this.state === 'roll') return
+    if (this.state === 'attack') {
+      this.queuedNext = true
+      return
+    }
+    this.startSwing(aim)
+  }
+
+  dodge(move: THREE.Vector3 | null): void {
+    if (this.state === 'dead' || this.state === 'roll' || this.rollCooldown > 0) return
+    this.rollDir =
+      move && move.lengthSq() > 0.01
+        ? move.clone().normalize()
+        : new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw))
+    this.state = 'roll'
+    this.rollT = 0
+    this.rollCooldown = ROLL_COOLDOWN
+    this.targetYaw = Math.atan2(this.rollDir.x, this.rollDir.z)
+    this.yaw = this.targetYaw
+    this.group.rotation.y = this.yaw
+    this.anim.play(this.anim.has('Roll_sword') ? 'Roll_sword' : 'Roll', {
+      loop: false,
+      duration: ROLL_TIME,
+      fade: 0.05,
+    })
+    this.onRoll?.()
+  }
+
+  private startSwing(aim: THREE.Vector3 | null): void {
+    if (this.comboIdleT > COMBO_RESET_AFTER) this.comboStage = 0
+    const stage = COMBO[this.comboStage]
+    if (aim) {
+      const dir = aim.clone().sub(this.position)
+      dir.y = 0
+      if (dir.lengthSq() > 0.01) this.attackDir = dir.normalize()
+    }
+    this.state = 'attack'
+    this.stageT = 0
+    this.hitDone = false
+    this.queuedNext = false
+    this.targetYaw = Math.atan2(this.attackDir.x, this.attackDir.z)
+    this.yaw = this.targetYaw
+    this.group.rotation.y = this.yaw
+    this.anim.play(stage.anim, { loop: false, duration: stage.time, fade: 0.06 })
+    this.onSwing?.()
+  }
+
+  private resolveHits(enemies: Enemy[], stage: ComboStage): void {
+    const hits: StrikeResult[] = []
+    const finisher = this.comboStage === COMBO.length - 1
+    for (const enemy of enemies) {
+      if (!enemy.alive) continue
+      const to = enemy.position.clone().sub(this.position)
+      to.y = 0
+      const dist = to.length()
+      if (dist > ATTACK_RANGE + enemy.radius) continue
+      if (dist > 0.4 && to.normalize().dot(this.attackDir) < ATTACK_ARC_COS) continue
+      hits.push({
+        enemy,
+        amount: Math.round(this.damage * stage.dmgMult),
+        finisher,
+      })
+    }
+    if (hits.length) this.onStrike?.(hits)
+  }
+
+  update(dt: number, enemies: Enemy[], move: THREE.Vector3, aim: THREE.Vector3 | null, attackHeld: boolean): void {
+    this.rollCooldown = Math.max(0, this.rollCooldown - dt)
+    this.sinceDamaged += dt
+    this.anim.update(dt)
+    this.lantern.intensity = 13 + Math.sin(performance.now() * 0.01) * 1.5
+
+    if (this.state === 'dead') return
+
+    // out-of-combat regen
+    if (this.sinceDamaged > 4) this.hp = Math.min(this.maxHp, this.hp + dt * 2.5)
+
+    if (this.state === 'roll') {
+      this.rollT += dt
+      this.step(this.rollDir, ROLL_SPEED * (1 - (this.rollT / ROLL_TIME) * 0.4), dt)
+      if (this.rollT >= ROLL_TIME) {
+        this.state = 'idle'
+        this.anim.play('Idle_swordRight')
+      }
       return
     }
 
-    // passive regen out of combat pressure
-    this.hp = Math.min(this.maxHp, this.hp + dt * 1.2)
-
-    this.attackTimer = Math.max(0, this.attackTimer - dt)
-
-    if (this.target && !this.target.alive) this.target = null
-
-    if (this.target) {
-      const toTarget = this.target.position.clone().sub(this.position)
-      toTarget.y = 0
-      const dist = toTarget.length()
-      if (dist > ATTACK_RANGE) {
-        this.step(toTarget.normalize(), dt)
-      } else {
-        this.face(this.target.position)
-        if (this.attackTimer <= 0) this.swing(enemies)
+    if (this.state === 'attack') {
+      const stage = COMBO[this.comboStage]
+      this.stageT += dt
+      // slight forward lunge early in the swing
+      if (this.stageT < stage.time * 0.5) {
+        this.step(this.attackDir, stage.lunge / (stage.time * 0.5), dt, false)
       }
-    } else if (this.destination) {
-      const toDest = this.destination.clone().sub(this.position)
-      toDest.y = 0
-      if (toDest.length() < 0.15) {
-        this.destination = null
-      } else {
-        this.step(toDest.normalize(), dt)
+      if (!this.hitDone && this.stageT >= stage.hitAt) {
+        this.hitDone = true
+        this.resolveHits(enemies, stage)
       }
+      if (this.stageT >= stage.time) {
+        const chain = (this.queuedNext || attackHeld) && this.comboStage < COMBO.length - 1
+        this.comboStage = chain ? this.comboStage + 1 : 0
+        this.comboIdleT = 0
+        if (chain || ((this.queuedNext || attackHeld) && this.comboStage === 0)) {
+          this.startSwing(aim)
+        } else {
+          this.state = 'idle'
+          this.anim.play('Idle_swordRight')
+        }
+      }
+      return
     }
 
-    // swing animation: arm arcs forward then returns
-    if (this.swingTime > 0) {
-      this.swingTime = Math.max(0, this.swingTime - dt)
-      const t = 1 - this.swingTime / 0.25
-      this.swordArm.rotation.x = -Math.sin(t * Math.PI) * 1.9
+    this.comboIdleT += dt
+
+    if (move.lengthSq() > 0.01) {
+      this.state = 'run'
+      this.targetYaw = Math.atan2(move.x, move.z)
+      this.step(move, RUN_SPEED, dt)
+      this.anim.play('Run_swordRight')
     } else {
-      this.swordArm.rotation.x = 0
+      this.state = 'idle'
+      this.anim.play('Idle_swordRight')
     }
 
-    // lantern flicker
-    this.lantern.intensity = 13 + Math.sin(performance.now() * 0.01) * 1.5
+    // smooth turn
+    let d = this.targetYaw - this.yaw
+    while (d > Math.PI) d -= Math.PI * 2
+    while (d < -Math.PI) d += Math.PI * 2
+    this.yaw += d * Math.min(1, TURN_SPEED * dt)
+    this.group.rotation.y = this.yaw
   }
 
-  private step(dir: THREE.Vector3, dt: number): void {
-    const next = this.position.clone().addScaledVector(dir, this.speed * dt)
-    if (next.length() > WORLD_RADIUS + 12) return
+  private step(dir: THREE.Vector3, speed: number, dt: number, turn = true): void {
+    const next = this.position.clone().addScaledVector(dir, speed * dt)
+    const flat = Math.hypot(next.x, next.z)
+    if (flat > WORLD_RADIUS + 10) return
     this.position.copy(next)
-    this.face(this.position.clone().add(dir))
-    // walk bob
-    this.group.position.y = Math.abs(Math.sin(performance.now() * 0.012)) * 0.08
-  }
-
-  private face(point: THREE.Vector3): void {
-    const dx = point.x - this.position.x
-    const dz = point.z - this.position.z
-    if (dx * dx + dz * dz > 0.0001) this.group.rotation.y = Math.atan2(dx, dz)
-  }
-
-  private swing(enemies: Enemy[]): void {
-    if (!this.target) return
-    this.attackTimer = ATTACK_COOLDOWN
-    this.swingTime = 0.25
-    this.onSwing?.()
-    this.onDealDamage?.(this.target, this.damage)
-    // small splash around the primary target
-    for (const other of enemies) {
-      if (other === this.target || !other.alive) continue
-      if (other.position.distanceTo(this.target.position) < SPLASH_RADIUS) {
-        this.onDealDamage?.(other, Math.round(this.damage * SPLASH_FACTOR))
-      }
-    }
+    if (turn) this.targetYaw = Math.atan2(dir.x, dir.z)
   }
 }

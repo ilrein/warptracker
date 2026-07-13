@@ -1,104 +1,98 @@
 import * as THREE from 'three'
 
-export interface PickResult {
-  enemyIndex: number | null
-  ground: THREE.Vector3 | null
-}
-
 /**
- * Pointer input: raycasts clicks against enemies first, then the ground.
- * Holding the button keeps issuing move orders (Diablo-style drag walk).
+ * Action-combat input: WASD/arrows to move, mouse to aim, left click to
+ * attack (hold to keep swinging), Space/Shift to dodge, wheel to zoom.
  */
 export class InputManager {
-  private raycaster = new THREE.Raycaster()
+  private keys = new Set<string>()
   private ndc = new THREE.Vector2()
+  private hasPointer = false
+  private raycaster = new THREE.Raycaster()
   private groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
-  private pointerDown = false
-  private lastEvent: PointerEvent | null = null
-  private marker: THREE.Mesh
-  private markerT = 1
 
-  onPick?: (result: PickResult) => void
-  onZoom?: (delta: number) => void
-  onFirstInteraction?: () => void
+  attackHeld = false
+  private attackPressed = false
+  private dodgePressed = false
   private interacted = false
 
-  constructor(
-    dom: HTMLElement,
-    private camera: THREE.Camera,
-    scene: THREE.Scene,
-    private getEnemyMeshes: () => THREE.Object3D[]
-  ) {
-    this.marker = new THREE.Mesh(
-      new THREE.RingGeometry(0.3, 0.45, 24),
-      new THREE.MeshBasicMaterial({
-        color: 0x86efac,
-        transparent: true,
-        opacity: 0,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      })
-    )
-    this.marker.rotation.x = -Math.PI / 2
-    this.marker.position.y = 0.05
-    scene.add(this.marker)
+  onZoom?: (delta: number) => void
+  onFirstInteraction?: () => void
+
+  constructor(dom: HTMLElement) {
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return
+      this.keys.add(e.code)
+      if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        this.dodgePressed = true
+        e.preventDefault()
+      }
+      this.markInteracted()
+    })
+    window.addEventListener('keyup', (e) => this.keys.delete(e.code))
+    window.addEventListener('blur', () => {
+      this.keys.clear()
+      this.attackHeld = false
+    })
 
     dom.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return
-      this.pointerDown = true
-      this.lastEvent = e
-      if (!this.interacted) {
-        this.interacted = true
-        this.onFirstInteraction?.()
+      if (e.button === 0) {
+        this.attackPressed = true
+        this.attackHeld = true
       }
-      this.pick(e, true)
+      this.updateNdc(e)
+      this.markInteracted()
     })
-    dom.addEventListener('pointermove', (e) => {
-      this.lastEvent = e
+    window.addEventListener('pointerup', (e) => {
+      if (e.button === 0) this.attackHeld = false
     })
-    window.addEventListener('pointerup', () => {
-      this.pointerDown = false
-    })
+    dom.addEventListener('pointermove', (e) => this.updateNdc(e))
     dom.addEventListener('wheel', (e) => this.onZoom?.(Math.sign(e.deltaY)), { passive: true })
     dom.addEventListener('contextmenu', (e) => e.preventDefault())
   }
 
-  /** Re-issue move orders while the pointer is held down. */
-  update(dt: number): void {
-    if (this.pointerDown && this.lastEvent) this.pick(this.lastEvent, false)
-    if (this.markerT < 1) {
-      this.markerT += dt * 2
-      const mat = this.marker.material as THREE.MeshBasicMaterial
-      mat.opacity = Math.max(0, 1 - this.markerT)
-      this.marker.scale.setScalar(1 + this.markerT * 0.6)
+  private markInteracted(): void {
+    if (!this.interacted) {
+      this.interacted = true
+      this.onFirstInteraction?.()
     }
   }
 
-  private pick(e: PointerEvent, allowTargeting: boolean): void {
+  private updateNdc(e: PointerEvent): void {
+    this.hasPointer = true
     this.ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1)
-    this.raycaster.setFromCamera(this.ndc, this.camera)
+  }
 
-    if (allowTargeting) {
-      const meshes = this.getEnemyMeshes()
-      const hits = this.raycaster.intersectObjects(meshes, true)
-      if (hits.length > 0) {
-        let obj: THREE.Object3D | null = hits[0].object
-        while (obj && obj.userData.enemyIndex === undefined) obj = obj.parent
-        if (obj) {
-          this.onPick?.({ enemyIndex: obj.userData.enemyIndex as number, ground: null })
-          return
-        }
-      }
-    }
+  /** Raw movement input in screen space: x = right, y = up. */
+  moveInput(): THREE.Vector2 {
+    const v = new THREE.Vector2(0, 0)
+    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) v.y += 1
+    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) v.y -= 1
+    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) v.x -= 1
+    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) v.x += 1
+    if (v.lengthSq() > 1) v.normalize()
+    return v
+  }
 
+  /** Where the mouse points on the ground plane, given the current camera. */
+  aimPoint(camera: THREE.Camera): THREE.Vector3 | null {
+    if (!this.hasPointer) return null
+    this.raycaster.setFromCamera(this.ndc, camera)
     const point = new THREE.Vector3()
-    if (this.raycaster.ray.intersectPlane(this.groundPlane, point)) {
-      if (allowTargeting) {
-        this.marker.position.set(point.x, 0.05, point.z)
-        this.marker.scale.setScalar(1)
-        this.markerT = 0
-      }
-      this.onPick?.({ enemyIndex: null, ground: point })
-    }
+    return this.raycaster.ray.intersectPlane(this.groundPlane, point) ? point : null
+  }
+
+  /** Edge-triggered: true once per click. */
+  takeAttackPressed(): boolean {
+    const v = this.attackPressed
+    this.attackPressed = false
+    return v
+  }
+
+  /** Edge-triggered: true once per dodge key press. */
+  takeDodgePressed(): boolean {
+    const v = this.dodgePressed
+    this.dodgePressed = false
+    return v
   }
 }

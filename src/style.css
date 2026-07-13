@@ -134,6 +134,25 @@ body {
   transition: width 0.2s ease-out;
 }
 
+#dodge-pip {
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid #52525b;
+  background: #18181b;
+  color: #52525b;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  transition: all 0.15s;
+}
+
+#dodge-pip.ready {
+  border-color: #86efac;
+  color: #86efac;
+  box-shadow: 0 0 10px rgba(134, 239, 172, 0.25);
+}
+
 #banner {
   position: absolute;
   top: 22%;

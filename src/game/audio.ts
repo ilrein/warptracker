@@ -73,4 +73,7 @@ export const audio = {
   death(): void {
     tone(200, 1.1, 'sawtooth', 0.1, 40)
   },
+  dodge(): void {
+    tone(420, 0.16, 'sine', 0.06, 120)
+  },
 }

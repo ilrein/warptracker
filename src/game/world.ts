@@ -17,10 +17,10 @@ export function buildWorld(scene: THREE.Scene): void {
   ground.name = 'ground'
   scene.add(ground)
 
-  const hemi = new THREE.HemisphereLight(0x4a4468, 0x141020, 2.4)
+  const hemi = new THREE.HemisphereLight(0x5a5480, 0x1a1528, 3.2)
   scene.add(hemi)
 
-  const moon = new THREE.DirectionalLight(0x8aa0c8, 1.2)
+  const moon = new THREE.DirectionalLight(0x8aa0c8, 1.8)
   moon.position.set(-30, 40, -20)
   moon.castShadow = true
   moon.shadow.mapSize.set(2048, 2048)

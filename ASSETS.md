@@ -38,6 +38,9 @@ Every non-procedural asset added must be listed in this file with its source lin
 
 | Asset | Source | License |
 |---|---|---|
-| All 3D models, VFX, world decor | procedural (`src/game/*.ts`) | MIT (code) |
+| `public/models/knight.glb`, `sword.glb`, `helmet.glb` | [Quaternius Animated Knight Pack](https://quaternius.com/packs/knightcharacter.html) (FBX→GLB via Blender) | CC0 |
+| `public/models/skeleton.glb`, `bat.glb` | [Quaternius Animated Monster Pack](https://quaternius.com/packs/animatedmonster.html) (FBX→GLB via Blender) | CC0 |
+| `public/models/ghost.glb`, `demon.glb` | [Quaternius Ultimate Monsters](https://quaternius.com/packs/ultimatemonsters.html) (glTF→GLB) | CC0 |
+| World decor, warp/telegraph VFX | procedural (`src/game/*.ts`) | MIT (code) |
 | All sound effects | procedural WebAudio (`src/game/audio.ts`) | MIT (code) |
 | Favicon | inline SVG (`index.html`) | MIT (code) |

@@ -15,15 +15,19 @@ A Diablo-style isometric ARPG built with [Three.js](https://threejs.org), TypeSc
 Three founding principles:
 
 1. **Fully open source.** MIT licensed, forever. The whole game — engine code, game design, balance numbers — lives in this repo.
-2. **Fully free assets.** Every asset is either generated procedurally in code or licensed CC0/public domain. Nothing in this repo can ever be encumbered. (Right now *everything* — models, effects, and even sound — is procedural.)
+2. **Fully free assets.** Every asset is either generated procedurally in code or licensed CC0/public domain. Nothing in this repo can ever be encumbered. (Characters are CC0 [Quaternius](https://quaternius.com) models; the world, VFX, and sound are procedural.)
 3. **Community driven.** The roadmap is issues and discussions. If you want a feature, propose it or build it.
 
 ## The game
 
-- **Click to move**, click an enemy to attack, scroll to zoom.
-- **Warps** spawn around the battlefield and pour out warpspawn. Kill everything a warp births and it collapses.
-- **Seal every warp** to clear the rift. Each rift is harder: more warps, tougher spawn, elite guardians.
-- Level up, get stronger, go deeper.
+Action combat — not click-and-wait:
+
+- **WASD** to move, **mouse** to aim.
+- **Click** to attack; chain clicks (or hold) for a 3-hit combo with a heavy finisher.
+- **SPACE** to dodge roll — full invincibility frames, short cooldown.
+- Enemies **telegraph** their attacks (red flash, ground rings). Everything is dodgeable.
+- **Warps** pour out warpspawn — skeletons, bats, dashing ghosts — and every warp's final spawn is an elite demon guardian. Kill everything a warp births and it collapses.
+- **Seal every warp** to clear the rift. Each rift is harder. Level up, get stronger, go deeper.
 
 ## Development
 
