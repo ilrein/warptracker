@@ -38,6 +38,7 @@ Every non-procedural asset added must be listed in this file with its source lin
 
 | Asset | Source | License |
 |---|---|---|
+| `art/hero-ubc-wip.glb` (not shipped — awaiting outfit pass) | [Quaternius Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) + [Universal Animation Library 1](https://quaternius.com/packs/universalanimationlibrary.html)/[2](https://quaternius.com/packs/universalanimationlibrary2.html) (19 curated clips merged in Blender, meshopt) | CC0 |
 | `public/models/knight.glb`, `sword.glb`, `helmet.glb` | [Quaternius Animated Knight Pack](https://quaternius.com/packs/knightcharacter.html) (FBX→GLB via Blender) | CC0 |
 | `public/models/skeleton.glb`, `bat.glb` | [Quaternius Animated Monster Pack](https://quaternius.com/packs/animatedmonster.html) (FBX→GLB via Blender) | CC0 |
 | `public/models/ghost.glb`, `demon.glb` | [Quaternius Ultimate Monsters](https://quaternius.com/packs/ultimatemonsters.html) (glTF→GLB) | CC0 |

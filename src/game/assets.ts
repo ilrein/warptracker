@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 
 /**
@@ -27,6 +28,7 @@ function normalizeClipName(model: ModelName, raw: string): string {
 
 export async function loadAssets(onProgress?: (done: number, total: number) => void): Promise<void> {
   const loader = new GLTFLoader()
+  loader.setMeshoptDecoder(MeshoptDecoder) // hero.glb is meshopt-compressed
   let done = 0
   await Promise.all(
     NAMES.map(async (name) => {
